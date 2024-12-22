@@ -35,7 +35,9 @@ services:
         condition: service_started
     # Mount a volume for the container
     volumes:
-      - ./pgcat.simple.toml:/etc/pgcat/pgcat.toml
+      - ./pgcat.toml:/etc/pgcat/pgcat.toml
+    networks:
+      - lab2
 
   pg1:
     # Use the Docker image from the Bitnami repository
@@ -72,6 +74,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - lab2
 
   pg2:
     # Use the Docker image from the Bitnami repository
@@ -115,6 +119,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - lab2
 
   pg3:
     # Use the Docker image from the Bitnami repository
@@ -158,6 +164,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - lab2
 
   lab-db-setup:
     build:
@@ -174,6 +182,8 @@ services:
         condition: service_started
       pg3:
         condition: service_started
+    networks:
+      - lab2
 
   lab-service1:
     build:
@@ -184,6 +194,8 @@ services:
     depends_on:
       lab-db-setup:
         condition: service_completed_successfully
+    networks:
+      - lab2
 
   lab-service2:
     build:
@@ -194,6 +206,8 @@ services:
     depends_on:
       lab-db-setup:
         condition: service_completed_successfully
+    networks:
+      - lab2
 
   nginx:
     build:
@@ -204,22 +218,15 @@ services:
     depends_on:
       - lab-service1
       - lab-service2
-
-  pgadmin:
-    image: dpage/pgadmin4
-    container_name: pgadmin
-    restart: unless-stopped
-    ports:
-      - "80:80"
-    environment:
-      PGADMIN_DEFAULT_EMAIL: "bp@kv41mn.com"
-      PGADMIN_DEFAULT_PASSWORD: "123"
-      #PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: "True"
-      #PGADMIN_CONFIG_LOGIN_BANNER: "Authorised users only!"
-      PGADMIN_CONFIG_CONSOLE_LOG_LEVEL: "10"
+    networks:
+      - lab2
 
 # Define volumes for postgres containers
 volumes:
   pg1data:
   pg2data:
   pg3data:
+
+# common network
+networks:
+  lab2:
