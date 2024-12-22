@@ -205,6 +205,19 @@ services:
       - lab-service1
       - lab-service2
 
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "bp@kv41mn.com"
+      PGADMIN_DEFAULT_PASSWORD: "123"
+      #PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: "True"
+      #PGADMIN_CONFIG_LOGIN_BANNER: "Authorised users only!"
+      PGADMIN_CONFIG_CONSOLE_LOG_LEVEL: "10"
+
 # Define volumes for postgres containers
 volumes:
   pg1data:
