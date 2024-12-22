@@ -1,0 +1,232 @@
+# Environment variables for PostgreSQL containers
+x-default-pg-env: &default-pg-env
+  DB_HOST: pgcat
+  DB_PORT: 6432
+  # Username for the PostgreSQL administrative account
+  POSTGRESQL_USERNAME: postgres
+  # Name of the default PostgreSQL database
+  POSTGRESQL_DATABASE: postgres
+  # Password for the PostgreSQL administrative account
+  POSTGRESQL_PASSWORD: mysecretpassword
+
+services:
+  
+  pgcat:
+    # Use the Docker image from the GitHub Container Registry
+    image: ghcr.io/postgresml/pgcat
+    # Set the container name
+    container_name: pgcat
+    # Restart the container unless explicitly stopped
+    restart: unless-stopped
+    # Set environment variables for the container
+    environment:
+      <<: *default-pg-env
+    # Map container ports to host ports
+    ports:
+      - "6432:6432"
+      - "9930:9930"
+    # Define dependencies for the container
+    depends_on:
+      pg1:
+        condition: service_healthy
+      pg2:
+        condition: service_started
+      pg3:
+        condition: service_started
+    # Mount a volume for the container
+    volumes:
+      - ./pgcat.toml:/etc/pgcat/pgcat.toml
+    networks:
+      - lab2
+
+  pg1:
+    # Use the Docker image from the Bitnami repository
+    image: bitnami/postgresql:16
+    # Set the container name
+    container_name: pg1
+    # Restart the container unless explicitly stopped
+    restart: unless-stopped
+    # Set environment variables for the container
+    environment:
+      <<: *default-pg-env
+      # Enable read/write auditing for PG
+      POSTGRESQL_PGAUDIT_LOG: READ,WRITE
+      # Log the hostname of the PostgreSQL server
+      POSTGRESQL_LOG_HOSTNAME: true
+      # Set the replication mode to master
+      POSTGRESQL_REPLICATION_MODE: master
+      # Set the replication username and password
+      POSTGRESQL_REPLICATION_USER: repl_user
+      POSTGRESQL_REPLICATION_PASSWORD: repl_password
+    # Map container ports to host ports
+    ports:
+      - "127.0.0.1:5433:5432"
+    # Mount a volume for the container
+    volumes:
+      - pg1data:/var/lib/postgresql/data
+    # Define a healthcheck for the container
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $$POSTGRESQL_USERNAME -d $$POSTGRESQL_DATABASE",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - lab2
+
+  pg2:
+    # Use the Docker image from the Bitnami repository
+    image: bitnami/postgresql:16
+    # Set the container name
+    container_name: pg2
+    # Restart the container unless explicitly stopped
+    restart: unless-stopped
+    # Set environment variables for the container
+    environment:
+      <<: *default-pg-env
+      # Enable read/write auditing for PG
+      POSTGRESQL_PGAUDIT_LOG: READ,WRITE
+      # Log the hostname of the PostgreSQL server
+      POSTGRESQL_LOG_HOSTNAME: true
+      # Set the replication mode to slave
+      POSTGRESQL_REPLICATION_MODE: slave
+      # Set the replication username and password
+      POSTGRESQL_REPLICATION_USER: repl_user
+      POSTGRESQL_REPLICATION_PASSWORD: repl_password
+      # Set the master host and port
+      POSTGRESQL_MASTER_HOST: pg1
+      POSTGRESQL_MASTER_PORT_NUMBER: 5432
+    # Map container ports to host ports
+    ports:
+      - "127.0.0.1:5434:5432"
+    # Mount a volume for the container
+    volumes:
+      - pg2data:/var/lib/postgresql/data
+    # Define a dependency for the container
+    depends_on:
+      pg1:
+        condition: service_healthy
+    # Define a healthcheck for the container
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $$POSTGRESQL_USERNAME -d $$POSTGRESQL_DATABASE",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - lab2
+
+  pg3:
+    # Use the Docker image from the Bitnami repository
+    image: bitnami/postgresql:16
+    # Set the container name
+    container_name: pg3
+    # Restart the container unless explicitly stopped
+    restart: unless-stopped
+    # Set environment variables for the container
+    environment:
+      <<: *default-pg-env
+      # Enable read/write auditing for PG
+      POSTGRESQL_PGAUDIT_LOG: READ,WRITE
+      # Log the hostname of the PostgreSQL server
+      POSTGRESQL_LOG_HOSTNAME: true
+      # Set the replication mode to slave
+      POSTGRESQL_REPLICATION_MODE: slave
+      # Set the replication username and password
+      POSTGRESQL_REPLICATION_USER: repl_user
+      POSTGRESQL_REPLICATION_PASSWORD: repl_password
+      # Set the master host and port
+      POSTGRESQL_MASTER_HOST: pg1
+      POSTGRESQL_MASTER_PORT_NUMBER: 5432
+    # Map container ports to host ports
+    ports:
+      - "127.0.0.1:5435:5432"
+    # Mount a volume for the container
+    volumes:
+      - pg3data:/var/lib/postgresql/data
+    # Define a dependency for the container
+    depends_on:
+      pg1:
+        condition: service_healthy
+    # Define a healthcheck for the container
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $$POSTGRESQL_USERNAME -d $$POSTGRESQL_DATABASE",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - lab2
+
+  lab-db-setup:
+    build:
+      context: ./lab-db-setup
+    container_name: lab-db-setup
+    environment:
+      <<: *default-pg-env
+    depends_on:
+      pgcat:
+        condition: service_started
+      pg1:
+        condition: service_healthy
+      pg2:
+        condition: service_started
+      pg3:
+        condition: service_started
+    networks:
+      - lab2
+
+  lab-service1:
+    build:
+      context: ./lab-service
+    container_name: lab-service1
+    environment:
+      <<: *default-pg-env
+    depends_on:
+      lab-db-setup:
+        condition: service_completed_successfully
+    networks:
+      - lab2
+
+  lab-service2:
+    build:
+      context: ./lab-service
+    container_name: lab-service2
+    environment:
+      <<: *default-pg-env
+    depends_on:
+      lab-db-setup:
+        condition: service_completed_successfully
+    networks:
+      - lab2
+
+  nginx:
+    build:
+      context: ./nginx
+    container_name: nginx
+    ports:
+      - "8080:8080"
+    depends_on:
+      - lab-service1
+      - lab-service2
+    networks:
+      - lab2
+
+# Define volumes for postgres containers
+volumes:
+  pg1data:
+  pg2data:
+  pg3data:
+
+# common network
+networks:
+  lab2:
