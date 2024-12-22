@@ -3,6 +3,7 @@ import psycopg2
 from loguru import logger
 from time import sleep
 
+
 def main():
     host = os.getenv("DB_HOST")
     port = os.getenv("DB_PORT")
@@ -46,13 +47,14 @@ def main():
 
         except Exception as e:
             logger.error(f"Error executing SQL: {e}")
-            sleep(1)
+            sleep(2)
 
         finally:
             if 'cursor' in locals():
                 cursor.close()
             if 'connection' in locals():
                 connection.close()
+
 
 if __name__ == "__main__":
     main()

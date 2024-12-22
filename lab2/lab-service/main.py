@@ -1,6 +1,7 @@
 from fastapi import FastAPI
-import random
 import psycopg2
+import os
+import random
 import socket
 
 
@@ -8,11 +9,11 @@ app = FastAPI()
 
 
 conn = psycopg2.connect(
-    host="db",
-    port=5432,
-    dbname="lab1",
-    user="postgres",
-    password="postgres"
+    host=os.getenv("DB_HOST"),
+    port=os.getenv("DB_PORT"),
+    dbname=os.getenv("POSTGRESQL_DATABASE"),
+    user=os.getenv("POSTGRESQL_USERNAME"),
+    password=os.getenv("POSTGRESQL_PASSWORD")
 )
 
 

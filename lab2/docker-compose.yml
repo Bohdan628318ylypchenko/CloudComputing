@@ -175,35 +175,35 @@ services:
       pg3:
         condition: service_started
 
-  #lab-service1:
-  #  build:
-  #    context: ./lab-service
-  #  container_name: lab-service1
-  #  environment:
-  #    <<: *default-pg-env
-  #  depends_on:
-  #    lab-db-setup:
-  #      condition: service_completed_successfully
+  lab-service1:
+    build:
+      context: ./lab-service
+    container_name: lab-service1
+    environment:
+      <<: *default-pg-env
+    depends_on:
+      lab-db-setup:
+        condition: service_completed_successfully
 
-  #lab-service2:
-  #  build:
-  #    context: ./lab-service
-  #  container_name: lab-service2
-  #  environment:
-  #    <<: *default-pg-env
-  #  depends_on:
-  #    lab-db-setup:
-  #      condition: service_completed_successfully
+  lab-service2:
+    build:
+      context: ./lab-service
+    container_name: lab-service2
+    environment:
+      <<: *default-pg-env
+    depends_on:
+      lab-db-setup:
+        condition: service_completed_successfully
 
-  #nginx:
-  #  build:
-  #    context: ./nginx
-  #  container_name: nginx
-  #  ports:
-  #    - "8080:8080"
-  #  depends_on:
-  #    - lab-service1
-  #    - lab-service2
+  nginx:
+    build:
+      context: ./nginx
+    container_name: nginx
+    ports:
+      - "8080:8080"
+    depends_on:
+      - lab-service1
+      - lab-service2
 
 # Define volumes for postgres containers
 volumes:
